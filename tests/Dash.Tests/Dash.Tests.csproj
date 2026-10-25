@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dash.Core\Dash.Core.csproj" />
+    <ProjectReference Include="..\Dash.FakeCli\Dash.FakeCli.csproj" />
   </ItemGroup>
 
 </Project>
