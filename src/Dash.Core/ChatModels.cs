@@ -1,3 +1,6 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.ObjectModel;
+
 namespace Dash.Core;
 
 public record ChatMeta(string Id, string Title, string? ClaudeSessionId,
@@ -8,12 +11,12 @@ public enum TurnRole { User, Assistant }
 public record ToolChipData(string Id, string Name, Dictionary<string, object?> Input,
     string? Output, bool IsError, bool Finished);
 
-public class ChatTurn
+public partial class ChatTurn : ObservableObject
 {
     public TurnRole Role { get; set; }
-    public string Text { get; set; } = "";
-    public string? Thinking { get; set; }
-    public List<ToolChipData> Tools { get; set; } = new();
+    [ObservableProperty] string _text = "";
+    [ObservableProperty] string? _thinking;
+    public ObservableCollection<ToolChipData> Tools { get; set; } = new();
 }
 
 public class ChatDocument

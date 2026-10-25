@@ -58,13 +58,11 @@ public partial class ChatConversation : ObservableObject
                 e => OnEvent(assistant, e));
             if (string.IsNullOrEmpty(assistant.Text) && !string.IsNullOrEmpty(result.Text))
                 assistant.Text = result.Text;
-            NotifyTurn(assistant);
         }
         catch (ClaudeException ex)
         {
             assistant.Text = (assistant.Text.Length > 0 ? assistant.Text + "\n\n" : "") + "⚠️ " + ex.Message;
             PendingApproval = null;   // dismiss any orphaned approval card if the process died mid-approval
-            NotifyTurn(assistant);
             _session = null; // force respawn with --resume next time
         }
         finally
@@ -93,15 +91,15 @@ public partial class ChatConversation : ObservableObject
     {
         switch (e)
         {
-            case ClaudeEvent.TextEvent t: assistant.Text += t.Text; NotifyTurn(assistant); break;
+            case ClaudeEvent.TextEvent t: assistant.Text += t.Text; break;
             case ClaudeEvent.ThinkingEvent th: assistant.Thinking = (assistant.Thinking ?? "") + th.Text; break;
             case ClaudeEvent.ToolStartedEvent ts:
                 assistant.Tools.Add(new ToolChipData(ts.Id, ts.Name, ts.Input, null, false, false));
-                NotifyTurn(assistant); break;
+                break;
             case ClaudeEvent.ToolFinishedEvent tf:
-                var i = assistant.Tools.FindIndex(x => x.Id == tf.Id);
+                var i = assistant.Tools.ToList().FindIndex(x => x.Id == tf.Id);
                 if (i >= 0) assistant.Tools[i] = assistant.Tools[i] with { Output = tf.Output, IsError = tf.IsError, Finished = true };
-                NotifyTurn(assistant); break;
+                break;
             case ClaudeEvent.PermissionEvent p: PendingApproval = p.Request; break;
         }
     }
@@ -113,10 +111,4 @@ public partial class ChatConversation : ObservableObject
     }
 
     public void Stop() => _session?.Interrupt();
-
-    void NotifyTurn(ChatTurn t)
-    {
-        var i = Turns.IndexOf(t);
-        if (i >= 0) { Turns[i] = t; } // trigger collection change so UI re-renders this turn
-    }
 }

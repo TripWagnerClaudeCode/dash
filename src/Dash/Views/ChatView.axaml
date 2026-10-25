@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:Dash.Core;assembly=Dash.Core"
+             x:Class="Dash.Views.ChatView" x:DataType="core:ChatConversation">
+  <DockPanel>
+    <!-- Composer -->
+    <Border DockPanel.Dock="Bottom" Padding="8" Background="#26262b">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox x:Name="Input" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="140"
+                 PlaceholderText="Message Dash…  (Return to send, Shift+Return for newline)"
+                 KeyDown="OnInputKeyDown"/>
+        <Button Grid.Column="1" Margin="8,0,0,0" Content="Stop"
+                IsVisible="{Binding IsStreaming}" Click="OnStop"/>
+      </Grid>
+    </Border>
+    <!-- Transcript -->
+    <ScrollViewer x:Name="Scroll">
+      <ItemsControl ItemsSource="{Binding Turns}" Margin="16">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="core:ChatTurn">
+            <Border Margin="0,6" Padding="10" CornerRadius="8"
+                    Background="{Binding Role, Converter={StaticResource RoleBg}}">
+              <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>
