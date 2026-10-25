@@ -74,6 +74,7 @@ public class ClaudeSession : IDisposable
         int n;
         try { while ((n = await stream.ReadAsync(buf)) > 0) _parser.Feed(buf.AsSpan(0, n)); }
         catch { /* pipe closed */ }
+        finally { OnStdoutClosed(); }
     }
 
     async Task ReadStderrAsync()
@@ -81,6 +82,18 @@ public class ClaudeSession : IDisposable
         string? line;
         try { while ((line = await _process.StandardError.ReadLineAsync()) != null) _stderr.AppendLine(line); }
         catch { }
+    }
+
+    // stdout EOF is the authoritative "all output consumed" signal. If a turn is still
+    // pending when the stream closes (process exited), finalize it here: success if a
+    // result was parsed from the drained bytes, otherwise a failure. This runs only
+    // after the reader has drained every byte, avoiding the race where Process.Exited
+    // fires before the final `result` line is parsed.
+    void OnStdoutClosed()
+    {
+        if (_tcs is null) return;
+        if (_parser.Result is { } r) { Finish(r); return; }
+        try { Finish(Fail()); } catch (ClaudeException e) { FinishError(e); }
     }
 
     void HandleEvent(ClaudeEvent e)
@@ -138,11 +151,8 @@ public class ClaudeSession : IDisposable
 
     void OnExited()
     {
-        if (_tcs is not null)
-        {
-            Log.Write($"claude exited mid-turn ({SafeExitCode()})");
-            try { Finish(Fail()); } catch (ClaudeException e) { FinishError(e); }
-        }
+        // Finalization happens on stdout EOF (OnStdoutClosed). Here we only log.
+        if (_tcs is not null) Log.Write($"claude exited mid-turn ({SafeExitCode()})");
     }
 
     int SafeExitCode() { try { return _process.ExitCode; } catch { return -1; } }
