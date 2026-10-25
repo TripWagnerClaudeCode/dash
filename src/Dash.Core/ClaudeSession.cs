@@ -33,11 +33,13 @@ public class ClaudeSession : IDisposable
     Action<ClaudeEvent>? _onEvent;
     TaskCompletionSource<TurnResult>? _tcs;
     readonly StringBuilder _stderr = new();
+    readonly object _stderrGate = new();
 
     public bool IsRunning { get { try { return !_process.HasExited; } catch { return false; } } }
 
     public ClaudeSession(ClaudeModel model, string effort, string system, ClaudeProfile profile,
-        string? sessionId = null, bool resume = false, string? executableOverride = null)
+        string? sessionId = null, bool resume = false, string? executableOverride = null,
+        IReadOnlyDictionary<string, string>? extraEnv = null)
     {
         var exe = executableOverride ?? Executable
             ?? throw new ClaudeException("Couldn't find the claude command. Install Claude Code and sign in.");
@@ -55,6 +57,9 @@ public class ClaudeSession : IDisposable
         psi.Environment.Remove("ANTHROPIC_API_KEY");
         psi.Environment.Remove("ANTHROPIC_AUTH_TOKEN");
         psi.Environment["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1";
+
+        if (extraEnv is not null)
+            foreach (var kv in extraEnv) psi.Environment[kv.Key] = kv.Value;
 
         _process.StartInfo = psi;
         _process.EnableRaisingEvents = true;
@@ -80,7 +85,7 @@ public class ClaudeSession : IDisposable
     async Task ReadStderrAsync()
     {
         string? line;
-        try { while ((line = await _process.StandardError.ReadLineAsync()) != null) _stderr.AppendLine(line); }
+        try { while ((line = await _process.StandardError.ReadLineAsync()) != null) lock (_stderrGate) _stderr.AppendLine(line); }
         catch { }
     }
 
@@ -140,7 +145,9 @@ public class ClaudeSession : IDisposable
 
     TurnResult Fail()
     {
-        var detail = _stderr.ToString().Trim();
+        string detail;
+        lock (_stderrGate) detail = _stderr.ToString();
+        detail = detail.Trim();
         var lower = detail.ToLowerInvariant();
         string[] loginMarkers = { "/login", "not logged in", "please log in", "authenticat", "oauth", "invalid api key" };
         var msg = loginMarkers.Any(lower.Contains)

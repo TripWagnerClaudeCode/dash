@@ -17,9 +17,9 @@ public class ClaudeSessionIntegrationTests
 
     static ClaudeSession NewSession(string scenario)
     {
-        Environment.SetEnvironmentVariable("FAKE_SCENARIO", scenario);
         return new ClaudeSession(ClaudeModel.Haiku, "low", "sys", ClaudeProfile.Console(),
-            executableOverride: FakeCli());
+            executableOverride: FakeCli(),
+            extraEnv: new Dictionary<string, string> { ["FAKE_SCENARIO"] = scenario });
     }
 
     [Fact]
