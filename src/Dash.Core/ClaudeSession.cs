@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 
 namespace Dash.Core;
 
@@ -34,7 +33,6 @@ public class ClaudeSession : IDisposable
     Action<ClaudeEvent>? _onEvent;
     TaskCompletionSource<TurnResult>? _tcs;
     readonly StringBuilder _stderr = new();
-    bool _interruptRequested;
 
     public bool IsRunning { get { try { return !_process.HasExited; } catch { return false; } } }
 
@@ -96,7 +94,6 @@ public class ClaudeSession : IDisposable
     {
         if (_tcs is not null) throw new ClaudeException("Still answering the last question.");
         _onEvent = onEvent;
-        _interruptRequested = false;
 
         _parser = new StreamJsonParser();
         _parser.OnEvent += HandleEvent;
@@ -117,7 +114,6 @@ public class ClaudeSession : IDisposable
     public bool Interrupt()
     {
         if (_tcs is null || !IsRunning) return false;
-        _interruptRequested = true;
         _parser.InterruptRequested = true;
         Write(ClaudeProtocol.InterruptJson());
         return true;
