@@ -86,4 +86,14 @@ public class StreamJsonParserTests
         var e = Run("not json\n" + TextDelta);
         Assert.Equal(2, e.OfType<ClaudeEvent.TextEvent>().Count());
     }
+
+    [Fact]
+    public void Tool_use_with_null_id_emits_no_ToolStartedEvent_and_does_not_throw()
+    {
+        // "id": null is valid JSON but must not flow into ToolStartedEvent.Id
+        var line =
+            "{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":null,\"name\":\"Bash\",\"input\":{\"command\":\"ls\"}}]}}\n";
+        var e = Run(line);
+        Assert.Empty(e.OfType<ClaudeEvent.ToolStartedEvent>());
+    }
 }

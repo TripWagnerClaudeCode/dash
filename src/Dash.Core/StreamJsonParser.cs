@@ -49,18 +49,26 @@ public class StreamJsonParser
 
             case "assistant":
                 foreach (var b in Content(e))
-                    if (Str(b, "type") == "tool_use" && b.TryGetProperty("id", out var id) && b.TryGetProperty("name", out var nm))
-                        OnEvent?.Invoke(new ClaudeEvent.ToolStartedEvent(
-                            id.GetString()!, nm.GetString()!, ToDict(b, "input")));
+                {
+                    if (Str(b, "type") != "tool_use") continue;
+                    var toolId = Str(b, "id");
+                    var toolName = Str(b, "name");
+                    if (toolId is null || toolName is null) continue;
+                    OnEvent?.Invoke(new ClaudeEvent.ToolStartedEvent(toolId, toolName, ToDict(b, "input")));
+                }
                 break;
 
             case "user":
                 foreach (var b in Content(e))
-                    if (Str(b, "type") == "tool_result" && b.TryGetProperty("tool_use_id", out var tid))
-                        OnEvent?.Invoke(new ClaudeEvent.ToolFinishedEvent(
-                            tid.GetString()!,
-                            b.TryGetProperty("is_error", out var ie) && ie.ValueKind == JsonValueKind.True,
-                            ResultText(b.TryGetProperty("content", out var c) ? c : (JsonElement?)null)));
+                {
+                    if (Str(b, "type") != "tool_result") continue;
+                    var tid = Str(b, "tool_use_id");
+                    if (tid is null) continue;
+                    OnEvent?.Invoke(new ClaudeEvent.ToolFinishedEvent(
+                        tid,
+                        b.TryGetProperty("is_error", out var ie) && ie.ValueKind == JsonValueKind.True,
+                        ResultText(b.TryGetProperty("content", out var c) ? c : (JsonElement?)null)));
+                }
                 break;
 
             case "control_request":
