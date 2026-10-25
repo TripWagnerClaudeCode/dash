@@ -1,9 +1,22 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Dash.MainWindow"
-        Title="Dash">
-    Welcome to Avalonia!
+        xmlns:vm="clr-namespace:Dash.ViewModels"
+        x:Class="Dash.MainWindow" Title="Dash" Width="1100" Height="760"
+        x:DataType="vm:AppViewModel">
+  <Grid ColumnDefinitions="260,*">
+    <!-- Sidebar -->
+    <DockPanel Grid.Column="0" Background="#1f1f23">
+      <Button DockPanel.Dock="Top" Margin="8" Content="+ New chat" Command="{Binding NewChatCommand}"/>
+      <ListBox ItemsSource="{Binding Chats}" SelectionMode="Single"
+               SelectionChanged="OnChatSelected">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Title}" Margin="4" TextTrimming="CharacterEllipsis"/>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+    <!-- Content: the active chat (ChatView added in Task 9/11) -->
+    <ContentControl Grid.Column="1" Content="{Binding Active}"/>
+  </Grid>
 </Window>
