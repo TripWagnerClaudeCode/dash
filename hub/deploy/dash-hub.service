@@ -1,0 +1,24 @@
+[Unit]
+Description=Dash hub (phone and Mac apps connect here)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/Dash/hub
+ExecStart=/usr/bin/node src/main.ts
+Environment=TZ=America/New_York
+# What the apps show ("Connected to dash-hub"); WSL's hostname is the Windows PC's name.
+Environment=DASH_HUB_NAME=dash-hub
+# Settings for this one machine, kept out of the repo in ~/.config/dash/hub.env, one KEY=value per line:
+#   DASH_ALERT_EMAIL=you@example.com
+#       Problems the hub finds are emailed here (once a day each), through jarvis and your own Gmail.
+#   DASH_PUBLIC_URL=https://dash-hub.your-tailnet.ts.net
+#       This hub on the tailnet, for notification buttons that call back (tailscale serve publishes it).
+#       setup-ntfy.sh needs it too, for ntfy's address on :8443.
+EnvironmentFile=-%h/.config/dash/hub.env
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

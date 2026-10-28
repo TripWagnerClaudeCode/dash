@@ -1,0 +1,2 @@
+// The hub keeps ntfy's token and push cache to itself; never back them up.
+ntfy

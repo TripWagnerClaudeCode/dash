@@ -1,0 +1,24 @@
+# Core (required)
+mcp[cli]<2
+python-dotenv
+httpx
+
+# Web search — ddgs is keyless; tavily is optional (needs TAVILY_API_KEY)
+ddgs
+tavily-python
+
+# File reading
+pypdf
+python-docx
+
+# Google (email + calendar) — optional; tools return setup hints if absent
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+
+# Browser automation — optional; also run `playwright install chromium` once
+playwright
+
+# Tests
+pytest
+pytest-asyncio

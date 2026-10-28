@@ -1,0 +1,12 @@
+.build/
+build/
+.DS_Store
+.claude/
+build.local
+.env
+.env.*
+!.env.example
+secrets/
+*.log
+# Your own Claude Code skills, installed by setup.sh; kept out of the repo.
+companions/skills/

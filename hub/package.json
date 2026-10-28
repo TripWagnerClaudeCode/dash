@@ -1,0 +1,28 @@
+{
+  "name": "dash-hub",
+  "private": true,
+  "type": "module",
+  "description": "Dash's always-on hub: the phone and Mac apps connect here.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "DASH_DATA=./.dev-data DASH_HUB_PORT=47910 node src/main.ts",
+    "check": "tsc --noEmit",
+    "selftest": "node src/selftest.ts && for f in src/test/*.test.ts; do [ -e \"$f\" ] || continue; node \"$f\" || exit 1; done",
+    "pair": "node src/cli.ts pair",
+    "chattest": "node src/chattest.ts",
+    "portfoliotest": "node src/portfoliotest.ts"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/ws": "^8.18.2",
+    "typescript": "^7.0.2"
+  }
+}

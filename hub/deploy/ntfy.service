@@ -1,0 +1,12 @@
+[Unit]
+Description=ntfy for Dash's phone notifications (tailnet only, through tailscale serve on :8443)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/ntfy serve --config %h/.config/dash-ntfy/server.yml
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

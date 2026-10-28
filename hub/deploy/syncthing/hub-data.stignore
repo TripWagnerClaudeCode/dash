@@ -1,0 +1,8 @@
+// Sign-in secrets and scratch files stay on the hub.
+secrets
+admin.sock
+*.tmp
+hub.log*
+mcp-*.json
+// ntfy holds its admin token (auth.db) and a cache of every push; both stay on the hub.
+ntfy

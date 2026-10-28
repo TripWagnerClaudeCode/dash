@@ -1,0 +1,17 @@
+[Unit]
+Description=Dash phone app server (Metro for Expo Go)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/Dash/mobile
+Environment=CI=1
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Expo Go fetches the app's code from this address, so it has to be the Tailscale one. If Tailscale
+# isn't up yet, exit and let systemd try again.
+ExecStart=/bin/bash -c 'IP=$(tailscale ip -4 2>/dev/null | head -1); [ -n "$IP" ] || exit 1; export REACT_NATIVE_PACKAGER_HOSTNAME=$IP; exec node node_modules/expo/bin/cli start --lan --port 8081'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

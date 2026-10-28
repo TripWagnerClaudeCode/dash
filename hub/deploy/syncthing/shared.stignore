@@ -1,0 +1,14 @@
+// Mac clutter, iCloud placeholders and folders that get rebuilt; same list on the Mac and the hub.
+(?d).DS_Store
+(?d)._*
+(?d).localized
+(?d)Icon?
+*.icloud
+.Trashes
+.Spotlight-V100
+.fseventsd
+node_modules
+.venv
+__pycache__
+.build
+.expo
