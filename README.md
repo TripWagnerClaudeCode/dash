@@ -29,7 +29,8 @@
 
 ## Contents
 
-- [Highlights](#highlights)
+- [What Dash is](#what-dash-is)
+- [Features](#features)
 - [Architecture](#architecture)
 - [Repository layout](#repository-layout)
 - [Getting started](#getting-started)
@@ -39,24 +40,128 @@
 - [Testing](#testing)
 - [Further reading](#further-reading)
 
-## Highlights
+## What Dash is
 
-| | |
-|---|---|
-| **⌥A Lens** | A floating panel over the window you're in, e.g. VHL Central homework. Dash screenshots that window and answers in an overlay that stays on top. Answer, Hint, Explain or Check My Work. ⌥Space hides it. |
-| **⌥L Console** | A full window with a sidebar of tools: Today, Chat, Lens, Lecture, Portfolio, Study and Memory. |
-| **Today** | Claude usage (5-hour and weekly limits, with reset countdowns), the next 7 days of calendar, a to-do notepad, and deadlines from the calendar, syllabi and chats. Also weather, the inbox, and a written daily brief. |
-| **Chat** | A full Claude Code session plus calendar, Gmail and lecture Docs. It reads files, runs commands, edits, searches the web and uses subagents. Anything that changes something shows an **Approve/Deny card** with the full command, diff or email. Chats are saved and resume with full context. They support markdown, pasted images and files, `/` skills, and per-chat model, effort and permissions. |
-| **Lecture** | Start or stop recording a class. Every 5 minutes the new transcript becomes notes in that class's Google Doc. Stopping rewrites the day's notes cleanly and deletes the raw transcript. |
-| **Portfolio** | Live Robinhood holdings against the S&P 500, gains, volatility, beta, drawdown, concentration and sectors. Plus an **Advisor**: a risk-manager persona that cites a source for every metric and never trades. |
-| **Memory** | Dash remembers across Mac, phone and hub: a daily journal, core facts, follow-ups, his own notes on himself, and "remember…" lines. Every line can be forgotten. |
-| **Secretary** | From an always-on hub: deadline reminders, a morning brief, an evening check-in and a twice-daily look around, pushed to the phone. Quiet hours run 11 PM to 8 AM. |
-| **iPhone** | The same to-do, chats, portfolio, memory and lecture controls, in Expo Go. It works with the Mac closed. |
+Dash is one assistant that follows you across your devices. On the Mac it's a lens you can hold over any window and a
+console with your day, your chats and your portfolio. On the iPhone it's the same console in your pocket. Underneath,
+an always-on hub keeps everything in one place, remembers what you've talked about, and nudges you before things are
+due, even with the laptop closed. Every model call goes through Claude Code on your Claude subscription, so there's no
+API key, and the tools that matter (email, calendar, files, the web) are one approval card away.
+
+Dash has a persona, too: a warm, wry chief of staff ("he") who knows your schedule, keeps his own notes on how you two
+work, and talks to you like someone who's been paying attention.
+
+## Features
+
+### ⌥A Lens: help with whatever's on screen
+
+Press **⌥A** over the window you're working in, such as a homework site, a PDF or a spreadsheet. Dash captures just
+that window, sends it to Claude, and answers in a small floating panel that stays on top without stealing focus.
+- **Wand menu:** one-click **Answer**, **Hint**, **Explain** or **Check My Work** on the current capture, plus a Quiz mode.
+- **Follow-ups:** keep asking about the capture, or about anything else.
+- **Context:** the lens knows your persona and memory, and each answer goes into Dash's memory log.
+- **Small footprint:** captures are downscaled to at most 1568 px. **⌥Space** shows or hides the panel, and it
+  remembers its size and position.
+
+### ⌥L Console: everything else, in one window
+
+A full window with a sidebar of pages: **Today**, **Chat**, **Lens**, **Lecture**, **Portfolio**, **Study** and
+**Memory**. Open it with **⌥L**, the menu bar icon, or the Dock.
+
+### Today: your day at a glance
+
+- **A written daily brief:** an encouraging opener, today's classes and weather, the week ahead, and the small things
+  you're likely to forget. Claude writes it, and **Rewrite** asks for another take.
+- **The next 7 days** of calendar, grouped by day, with locations.
+- **Deadlines** from your calendar, your syllabi and your chats, soonest first, with exams marked. Dates Dash read from
+  a syllabus wait for your **Confirm** before they count.
+- **A to-do notepad:** a plain markdown checklist that chats can add to. Checked items disappear after a short undo
+  window.
+- **Inbox and weather,** plus one-tap actions: What's due?, start a lecture recording, open your school tabs, draft an
+  email, add an event.
+- **Claude usage:** how much of your 5-hour and weekly limits you've used, with reset countdowns. It's also shown at the
+  bottom of the sidebar.
+
+### Chat: a full Claude Code session with your tools
+
+Each chat is a real Claude Code session that can read and search files, run shell commands, edit and write files,
+search and fetch the web, and hand work to subagents. It also has jarvis's Gmail, Google Calendar and Google Docs tools.
+- **Approve/Deny cards:** anything that changes something (sending email, editing a calendar, a shell command that
+  writes, a file edit, a web fetch) shows the full command, diff or email first. **Always allow** applies for the rest
+  of that chat only. Reads run on their own.
+- **Chats persist.** They're saved with titles and history, and resume with their full context after a relaunch, a
+  Stop, or a change of model or permissions. **Stop** interrupts without losing the conversation, and messages typed
+  while Claude is answering wait in a queue.
+- **A composer that respects you:** markdown rendering with copyable code blocks, expandable tool calls, pasted or
+  dropped images and files, and `/` to load any installed Claude Code skill. Model, effort and permissions are set per
+  chat.
+- **Off the record:** a toggle that keeps a conversation out of memory entirely. It's stored apart, never summarized,
+  and unreadable by other chats.
+- **Check-ins:** the evening check-in opens as a chat, so you can answer it in your own words.
+
+### Lecture: notes that write themselves
+
+Press **Start** for a class, and Dash records the microphone and transcribes it **locally** with faster-whisper, so
+audio never leaves the Mac.
+- Every 5 minutes, the new transcript becomes clean, topic-organized notes appended to that class's Google Doc.
+- **Stop** files the rest, rewrites the whole day's section into a tidy, deduplicated version, and deletes the raw
+  transcript.
+- The menu bar icon turns red while recording, and you can start or stop from the iPhone's Lecture tab.
+
+### Portfolio: your Robinhood account, analyzed and strictly read-only
+
+Dash connects to Robinhood's official agent MCP server with its own OAuth sign-in. Data flows straight to the app, so
+live prices cost no tokens.
+- **Live value:** prices update every 15 seconds while the market is open, with the day's change next to the S&P 500.
+- **Performance vs. the S&P 500** over 1M, 3M, YTD and 1Y, computed from your current holdings at past daily closes.
+  The chart says so.
+- **Risk metrics:** unrealized and realized gains, annualized volatility, beta, max drawdown, concentration, sector
+  weights, and each holding's share of portfolio variance. There's also a sortable holdings table.
+- **The Advisor:** a chat persona modeled on a senior risk manager and equity analyst. It takes a five-year,
+  fundamentals-first view, puts capital preservation first, and cross-checks every metric against SEC filings or flags
+  it. It asks before any taxable or high-turnover suggestion, and never trades. A goals interview on first use becomes
+  an investor profile it reads every time.
+- **Read-only by construction:** there's no order, cancel or edit path anywhere. See
+  [Security and privacy](#security-and-privacy).
 
 <p align="center">
   <img src="docs/images/portfolio.png" width="880" alt="Dash's Portfolio page with sample holdings: performance vs. the S&P 500 and risk metrics">
   <br><sub>Portfolio, shown with made-up sample holdings.</sub>
 </p>
+
+### Study
+
+Launchers for your Claude Code skills (practice exams, essay outlines and anything else you've installed), plus your
+own study apps and school links from [your profile](#configuration).
+
+### Memory: an assistant that actually remembers
+
+Dash keeps one memory, on the hub, shared by the Mac, the phone and every chat:
+- **A raw log** of everything: chat summaries written when a conversation goes quiet, lens questions, lectures and pushes.
+- **A nightly write-up at 4:15 AM:** a journal entry for the day, **core** facts about you, open **follow-ups**
+  ("ask how the exam went"), and **self**, Dash's notes on himself (how you two work, running jokes, opinions he's
+  formed). Each rewrite is checked before it replaces the old one, so a bad night can't blank your memory.
+- **"Remember…"** lines, kept exactly as you said them.
+- **A Memory page** on the Mac and iPhone that shows all of it, with **Forget** on every line. Forgetting also scrubs the
+  log and the journal.
+
+### Secretary: nudges that arrive on time
+
+The hub works while your laptop sleeps and pushes to your phone through a self-hosted [ntfy](https://ntfy.sh) server:
+- **Deadline reminders** 3 days, 1 day and 3 hours before (exams also get one a week and two days ahead), with a
+  **Done** button right on the notification. Several at once arrive as one digest.
+- **A morning brief** at 8 AM, a **follow-up** at 12:30, and an **evening check-in** at 9 PM.
+- **A look around** twice a day: Dash reads your inbox and calendar for anything that isn't on your lists yet, adds it
+  as an unconfirmed deadline or follow-up, and pushes at most once. He never pushes something you've already done.
+- **Quiet hours from 11 PM to 8 AM.** Nothing gets through. What was held arrives at 8 as one digest, and anything that
+  expired overnight is dropped.
+
+### iPhone app
+
+The same Dash in your pocket, built with Expo and loaded in **Expo Go**, so there's no Xcode build or App Store
+provisioning: Today, Chats (with approval cards), Portfolio and the Advisor, Lecture controls, Study, Memory and
+Settings. It pairs with a QR code, keeps an offline copy for when you're out of signal, and reconnects on its own.
+Because everything lives on the hub, it works with the Mac closed.
 
 ## Architecture
 
