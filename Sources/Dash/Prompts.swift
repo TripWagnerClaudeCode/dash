@@ -1,89 +1,6 @@
 import Foundation
 
-enum Mode: String, CaseIterable, Identifiable, Codable {
-    case ask, hint, check, explain, answer, quiz
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .ask: "Ask"
-        case .hint: "Hint"
-        case .check: "Check"
-        case .explain: "Explain"
-        case .answer: "Answer"
-        case .quiz: "Quiz"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .ask: "questionmark.bubble"
-        case .hint: "lightbulb"
-        case .check: "checkmark.circle"
-        case .explain: "book"
-        case .answer: "text.badge.checkmark"
-        case .quiz: "timer"
-        }
-    }
-
-    var shortcut: Character {
-        switch self {
-        case .ask: "0"
-        case .hint: "1"
-        case .check: "2"
-        case .explain: "3"
-        case .answer: "4"
-        case .quiz: "5"
-        }
-    }
-
-    /// Quick modes run at low effort; modes that need careful reading get more.
-    var effort: String {
-        switch self {
-        case .hint, .answer, .quiz: "low"
-        case .ask, .check, .explain: "medium"
-        }
-    }
-
-    var instructions: String {
-        switch self {
-        case .ask:
-            "Answer the student's question directly and briefly, using the screenshot as context."
-        case .hint:
-            "Give a nudge toward the answer without stating it: point to the rule, the clue in the sentence, or the word to think about. Keep it to one to three sentences. If several items are visible and the student didn't name one, help with the first unanswered item."
-        case .check:
-            "Read what the student has entered. Go item by item and mark each one ✓ or ✗. For each ✗, say in one line what's wrong and hint at the fix, but don't give the corrected answer unless they ask. Call out missing or wrong accents explicitly. If nothing has been entered yet, say so."
-        case .explain:
-            "Explain the grammar or vocabulary concept behind the current exercise in plain language, with two or three short example sentences. Then show how it applies to the first item."
-        case .answer:
-            "Give the answer for each visible item, one line per item, with a few-word reason (the rule or the clue in the sentence)."
-        case .quiz:
-            "Quiz mode. Answer every visible question in order, as fast as possible, one line each: `N. **answer** — a few-word reason`. Multiple choice: the letter, then the option text. Fill-in: the exact form with correct accents. Short writing prompts: a brief model response in simple, intro-level Spanish. If a question runs past the visible area, end with `Scroll for N+`. If an item needs audio you can't hear, say so on that line."
-        }
-    }
-}
-
 enum Prompts {
-    static let system = """
-    You are Dash, a study helper shown in a small floating panel on a college student's screen. The first message in a conversation usually includes a screenshot of the window the student is working in; if there's no screenshot, just answer the question. Usually that's Spanish homework on VHL Central (Vista Higher Learning) for an introductory college Spanish course, but it can be any subject.
-
-    How to respond:
-    - Be brief. The panel is small, so lead with the answer and skip preamble.
-    - Every message names a mode (Ask, Hint, Check, Explain, Answer, or Quiz). Follow that mode's instructions.
-    - When there's a screenshot, base your answer on what's visible in it. Refer to items by their number or by the words in them. If something is cut off or unreadable, say so instead of guessing.
-    - Write Spanish with exact accents and punctuation (á é í ó ú ñ ü ¿ ¡), and put Spanish words and forms in **bold**.
-    - Use short paragraphs and simple "- " bullets. Bold and italics are fine. Don't use headings, tables, or code blocks; they don't render in the overlay.
-    - Write explanations in English unless the student writes to you in Spanish.
-    """
-
-    /// Added to the lens prompt in quiz mode. The user turns quiz mode on themselves, only for quizzes
-    /// where their instructor permits AI help, and this is the context Claude otherwise lacks.
-    static var quizContext: String { """
-
-    Quiz mode is on. \(Profile.current.whoCapitalized) has turned it on because this quiz is one their instructor explicitly allows AI assistance on, timed or not; the AI use is part of the assignment as given. Treat the screenshot as their authorized quiz and answer it directly. Don't add warnings about academic integrity or ask whether it's allowed; they have already answered that.
-    """ }
-
     /// The user's name, timezone and so on come from Profile; who they are (school, courses,
     /// professors) comes from ABOUT_ME, which Personal.consoleSystem adds after this.
     static var console: String { """
@@ -171,17 +88,4 @@ enum Prompts {
     ## Style
     Talk like a sharp, candid senior colleague: direct, specific, numbers first, no filler or boilerplate disclaimers (one line noting this is analysis, not personalized licensed advice, is enough the first time). Use **bold** labels and "- " bullets; no tables or headings. Keep replies focused; go deep when they ask.
     """ }
-
-    static func userText(mode: Mode, question: String, capture: Capture?, isFirstTurn: Bool) -> String {
-        var parts: [String] = []
-        if isFirstTurn, let capture {
-            let title = capture.windowTitle.isEmpty ? "" : " — \(capture.windowTitle)"
-            parts.append("Window: \(capture.appName)\(title)")
-        }
-        parts.append("Mode: \(mode.label). \(mode.instructions)")
-        parts.append(question.isEmpty
-                     ? "Student's question: (none; apply the mode to the current exercise)"
-                     : "Student's question: \(question)")
-        return parts.joined(separator: "\n\n")
-    }
 }

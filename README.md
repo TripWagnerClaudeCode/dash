@@ -5,7 +5,7 @@
 <h1 align="center">Dash</h1>
 
 <p align="center">
-  <strong>A personal AI console for macOS and iPhone, with a lens over any window, a full Claude Code chat, and a secretary that never sleeps.</strong>
+  <strong>A personal AI console for macOS and iPhone, with a full Claude Code chat and a secretary that never sleeps.</strong>
 </p>
 
 <p align="center">
@@ -42,8 +42,8 @@
 
 ## What Dash is
 
-Dash is one assistant that follows you across your devices. On the Mac it's a lens you can hold over any window and a
-console with your day, your chats and your portfolio. On the iPhone it's the same console in your pocket. Underneath,
+Dash is one assistant that follows you across your devices. On the Mac it's a console with your day, your chats and
+your portfolio. On the iPhone it's the same console in your pocket. Underneath,
 an always-on hub keeps everything in one place, remembers what you've talked about, and nudges you before things are
 due, even with the laptop closed. Every model call goes through Claude Code on your Claude subscription, so there's no
 API key, and the tools that matter (email, calendar, files, the web) are one approval card away.
@@ -53,19 +53,13 @@ work, and talks to you like someone who's been paying attention.
 
 ## Features
 
-### ⌥A Lens: help with whatever's on screen
+> [!TIP]
+> The ⌥A screen helper that used to live in Dash (capture a window, get an answer in a floating panel) is now its own
+> app, **MyViewer**, and runs without Dash.
 
-Press **⌥A** over the window you're working in, such as a homework site, a PDF or a spreadsheet. Dash captures just
-that window, sends it to Claude, and answers in a small floating panel that stays on top without stealing focus.
-- **Wand menu:** one-click **Answer**, **Hint**, **Explain** or **Check My Work** on the current capture, plus a Quiz mode.
-- **Follow-ups:** keep asking about the capture, or about anything else.
-- **Context:** the lens knows your persona and memory, and each answer goes into Dash's memory log.
-- **Small footprint:** captures are downscaled to at most 1568 px. **⌥Space** shows or hides the panel, and it
-  remembers its size and position.
+### ⌥L Console: everything in one window
 
-### ⌥L Console: everything else, in one window
-
-A full window with a sidebar of pages: **Today**, **Chat**, **Lens**, **Lecture**, **Portfolio**, **Study** and
+A full window with a sidebar of pages: **Today**, **Chat**, **Lecture**, **Portfolio**, **Study** and
 **Memory**. Open it with **⌥L**, the menu bar icon, or the Dock.
 
 ### Today: your day at a glance
@@ -137,7 +131,7 @@ own study apps and school links from [your profile](#configuration).
 ### Memory: an assistant that actually remembers
 
 Dash keeps one memory, on the hub, shared by the Mac, the phone and every chat:
-- **A raw log** of everything: chat summaries written when a conversation goes quiet, lens questions, lectures and pushes.
+- **A raw log** of everything: chat summaries written when a conversation goes quiet, lectures and pushes.
 - **A nightly write-up at 4:15 AM:** a journal entry for the day, **core** facts about you, open **follow-ups**
   ("ask how the exam went"), and **self**, Dash's notes on himself (how you two work, running jokes, opinions he's
   formed). Each rewrite is checked before it replaces the old one, so a bad night can't blank your memory.
@@ -166,13 +160,11 @@ Because everything lives on the hub, it works with the Mac closed.
 ## Architecture
 
 Dash's shared half runs on the **Dash hub**: an always-on service in WSL on a Windows PC, reached over Tailscale.
-The Mac app and the iPhone app are both clients of it. The ⌥A lens and lecture recording stay on the Mac, which has
-the screen and the microphone.
+The Mac app and the iPhone app are both clients of it. Lecture recording stays on the Mac, which has the microphone.
 
 ```mermaid
 flowchart LR
     subgraph Mac["MacBook · Dash.app (Swift)"]
-        Lens["⌥A Lens"]
         Console["⌥L Console"]
         Rec["Lecture recorder<br/>(jarvis)"]
     end
@@ -229,18 +221,18 @@ flowchart LR
 
 | File | Role |
 |---|---|
-| `AppDelegate.swift` | Menu bar item, ⌥A / ⌥Space / ⌥L hotkeys, choosing which window to capture |
-| `ScreenCapture.swift` | Captures the frontmost window with ScreenCaptureKit and downscales it to ≤1568 px |
+| `AppDelegate.swift` | Menu bar item, the ⌥L hotkey, the main menu, and quitting safely mid-lecture |
+| `HotKey.swift` | A system-wide hotkey through Carbon (no Accessibility permission needed) |
 | `ClaudeCLI.swift` | One `claude -p` session per conversation. A `ClaudeProfile` sets its tools; calls that aren't pre-approved come back as permission requests for Dash to answer |
 | `JarvisClient.swift` | Dash's own jarvis MCP process, called directly over stdio |
 | `Personal.swift` | ABOUT_ME, the memory file, and skill loading for console prompts |
-| `Prompts.swift` | Lens, console, daily brief and lecture-notes prompts |
+| `Prompts.swift` | Console, daily brief, lecture-notes, portfolio and advisor prompts |
 | `Usage.swift` | Subscription usage, read from the `rate_limit_event` Claude Code sends with every request |
-| `Conversation.swift`, `Session.swift` | A conversation's turns, streaming, tool chips and approvals; the ⌥A lens session |
+| `Conversation.swift` | A conversation's turns, streaming, tool chips and approvals |
 | `Console/` | The console window and pages: `ChatModel` (saved chats, resume, queue, settings), `TodayModel`, `LectureController`, `MemoryModel` / `MemoryPage`, `Deadlines`, `ToDoList`, and `Toolbox` (the Study buttons) |
 | `Hub/` | `HubClient` (pairing, sign-in, reconnect with backoff, heartbeat), `HubConversation`, `HubSettings`, `LectureRemote`, `HubClientCheck` |
 | `Portfolio/` | `RobinhoodClient` (OAuth + read-only MCP), `RobinhoodRelay` (read-only MCP for the advisor), `PortfolioModel`, `Analytics`, `PortfolioView` |
-| `OverlayPanel.swift`, `OverlayView.swift`, `SettingsView.swift` | The floating panel and Settings |
+| `SettingsView.swift` | Settings |
 
 </details>
 
@@ -284,8 +276,7 @@ The hub's setup, from a bare Windows PC to `deploy.sh`, is in [`hub/README.md`](
 ### Permissions and signing
 
 - **Microphone:** asked for at the first lecture recording.
-- **Screen Recording:** asked for at the first capture (System Settings › Privacy & Security › Screen & System Audio Recording).
-- `build.sh` signs with the "Dash Local Signing" certificate in your login keychain, so these permissions survive rebuilds.
+- `build.sh` signs with the "Dash Local Signing" certificate in your login keychain, so that permission survives rebuilds.
   Without that certificate it falls back to ad-hoc signing, and macOS asks again after each build.
 
 ## Configuration
@@ -318,16 +309,9 @@ machine they belong to.
 
 | Shortcut / control | Does |
 |---|---|
-| **⌥A** (or the camera button) | Capture the window you're in and answer it |
-| **⌥Space** (or ×) | Show or hide the panel |
-| **⌥L** (or the window button, or the menu bar icon) | Open or hide the console |
-| **Wand button** | Answer, Hint, Explain, or Check My Work on the current capture |
-| **Chat field** | Follow-ups about the capture, or anything at all if nothing's captured |
-| **Gear** (or ⌘, / menu bar icon) | Settings: model, opacity, the Dash hub |
+| **⌥L** (or the menu bar icon, or the Dock) | Open or hide the console |
+| **⌘,** (or the menu bar icon) | Settings: model, the Dash hub |
 
-- The panel stays on top without taking keyboard focus, so you keep typing in your app until you click its chat field.
-- Drag the top bar to move the panel and the bottom-right grip to resize it. Its frame is remembered. Right-click the
-  top bar, or use Settings › Reset Panel Position, if it ends up off-screen.
 - Clicking the Dock icon, or tabbing to Dash, brings the console back. Quit with ⌘Q or the menu bar item.
 - **Settings › Dash hub › Open Dash at login** starts Dash when you log in. Quitting mid-lecture asks first.
 - Events are logged to `~/Library/Application Support/Dash/dash.log`.
@@ -379,10 +363,10 @@ Run these with the debug binary, and set `DASH_SUPPORT` (plus `DASH_HUB_CREDENTI
 paths, so tests never share the installed app's files.
 
 ```sh
-Dash --preview out.png [today|chat|lens|lecture|portfolio|portfolio-advisor|study]  # screenshot a console page with sample data
-Dash --preview out.png [portfolio-sample|portfolio-sample-bottom]                  # Portfolio with made-up holdings
+Dash --preview out.png <today|chat|lecture|portfolio|portfolio-advisor|study|memory>  # screenshot a console page with sample data
+Dash --preview out.png <portfolio-sample|portfolio-sample-bottom>                  # Portfolio with made-up holdings
 DASH_PREVIEW_SIZE=720x480 Dash --preview out.png today  # another window size; also prints the page's minimum width
-Dash --preview out.png [panel-chat|long|settings]       # the floating panel
+Dash --preview out.png settings                         # the Settings window
 Dash --chat-selftest                                    # drives the real chat on Haiku: stop, resume, queue, approvals, history
 Dash --jarvis calendar_get '{"days":3}'                 # call a jarvis tool through Dash's client
 Dash --ask --console "what's due this week?"            # console chat from the CLI (denies all writes)

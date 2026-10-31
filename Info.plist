@@ -13,6 +13,5 @@
     <key>CFBundleIconFile</key><string>Dash</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSMicrophoneUsageDescription</key><string>Dash records lectures you start from the Lecture page and transcribes them on this Mac.</string>
-    <key>NSScreenCaptureUsageDescription</key><string>Dash captures the window you're working in so Claude can help with it.</string>
 </dict>
 </plist>

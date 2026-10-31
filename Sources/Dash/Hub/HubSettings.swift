@@ -110,7 +110,7 @@ struct HubSettingsSection: View {
             Spacer()
             Button("Unpair This Mac", role: .destructive) { hub.unpair() }
         }
-        Text("The hub runs on your PC, so your phone keeps working with this Mac closed. Lecture recording and the ⌥A lens still run on this Mac.")
+        Text("The hub runs on your PC, so your phone keeps working with this Mac closed. Lecture recording still runs on this Mac.")
             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }
 

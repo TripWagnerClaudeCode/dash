@@ -5,14 +5,13 @@ import SwiftUI
 @MainActor
 final class Console: ObservableObject {
     enum Page: String, CaseIterable, Identifiable {
-        case today, chat, lens, lecture, portfolio, study, memory
+        case today, chat, lecture, portfolio, study, memory
         var id: String { rawValue }
 
         var title: String {
             switch self {
             case .today: "Today"
             case .chat: "Chat"
-            case .lens: "Lens"
             case .lecture: "Lecture"
             case .portfolio: "Portfolio"
             case .study: "Study"
@@ -24,7 +23,6 @@ final class Console: ObservableObject {
             switch self {
             case .today: "sun.horizon"
             case .chat: "bubble.left.and.bubble.right"
-            case .lens: "text.viewfinder"
             case .lecture: "waveform"
             case .portfolio: "chart.line.uptrend.xyaxis"
             case .study: "graduationcap"
@@ -37,13 +35,11 @@ final class Console: ObservableObject {
     @Published var chatDraft = ""
 
     let chat = ChatConversation()
-    let lens: Session
     let today: TodayModel
     let lecture: LectureController
     let portfolio = PortfolioModel()
 
-    init(lens: Session, jarvis: JarvisClient) {
-        self.lens = lens
+    init(jarvis: JarvisClient) {
         today = TodayModel(jarvis: jarvis)
         lecture = LectureController(jarvis: jarvis)
         // Unless something new has been typed since.
@@ -108,7 +104,6 @@ final class ConsoleWindowController {
             window.collectionBehavior.insert(.moveToActiveSpace)
             window.contentView = NSHostingView(rootView: ConsoleView()
                 .environmentObject(console)
-                .environmentObject(console.lens)
                 .environmentObject(console.today)
                 .environmentObject(console.lecture)
                 .environmentObject(console.portfolio))
@@ -199,7 +194,6 @@ struct ConsoleView: View {
             switch console.page ?? .today {
             case .today: TodayView()
             case .chat: ChatPage()
-            case .lens: LensPage()
             case .lecture: LecturePage()
             case .portfolio: PortfolioPage()
             case .study: StudyPage()

@@ -66,6 +66,58 @@ struct ApprovalCard: View {
     }
 }
 
+/// Equatable so SwiftUI skips re-parsing the markdown of finished turns on every streamed token.
+struct TurnView: View, Equatable {
+    let turn: Conversation.Turn
+    let isLive: Bool
+    var fontSize: CGFloat = 12.5
+
+    var body: some View {
+        switch turn.role {
+        case .user:
+            if !turn.text.isEmpty {
+                Text(turn.text)
+                    .font(.system(size: fontSize - 0.5))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        case .assistant:
+            // One leading-aligned stack, so tool chips sit flush left above the text.
+            VStack(alignment: .leading, spacing: 8) {
+                if !turn.tools.isEmpty { ToolChips(tools: turn.tools) }
+                if turn.text.isEmpty && isLive {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.mini)
+                        Text(turn.tools.contains { !$0.done } ? "Working…" : "Thinking…")
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                } else if !turn.text.isEmpty || !isLive {
+                    Text(Self.render(turn.text))
+                        .font(.system(size: fontSize))
+                        .lineSpacing(1.5)
+                        .foregroundStyle(turn.isError ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+                        .textSelection(.enabled)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    static func render(_ text: String) -> AttributedString {
+        // Only inline markdown renders here, so show "## Heading" lines as bold text.
+        let text = text.components(separatedBy: "\n").map { line in
+            guard let range = line.range(of: #"^#{1,6} +"#, options: .regularExpression) else { return line }
+            return "**\(line[range.upperBound...])**"
+        }.joined(separator: "\n")
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
+    }
+}
+
 /// The scrolling list of turns, with approval cards pinned after the live turn.
 struct ConversationScroll<Empty: View>: View {
     @ObservedObject var conversation: Conversation

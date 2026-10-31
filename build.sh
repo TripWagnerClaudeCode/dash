@@ -17,7 +17,7 @@ cp .build/release/Dash "$APP/Contents/MacOS/Dash"
 cp Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP/Contents/Info.plist"
 cp Resources/Dash.icns "$APP/Contents/Resources/Dash.icns"
-# Sign with the local "Dash Local Signing" certificate so macOS keeps Screen Recording and Microphone
+# Sign with the local "Dash Local Signing" certificate so macOS keeps Microphone
 # permission across rebuilds. Falls back to ad-hoc signing (permission resets each build).
 IDENTITY=$(security find-identity -p codesigning | awk '/"Dash Local Signing"/ {print $2; exit}')
 codesign --force --sign "${IDENTITY:--}" --identifier "$BUNDLE_ID" "$APP"

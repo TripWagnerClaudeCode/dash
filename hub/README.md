@@ -13,7 +13,7 @@ Mac Dash and the iPhone app are both clients of it.
 ```mermaid
 flowchart LR
     Phone["iPhone<br/>(Expo Go)"] -->|Tailscale| Serve
-    Mac["Mac Dash<br/>⌥A lens · lecture recording"] -->|Tailscale| Serve
+    Mac["Mac Dash<br/>lecture recording"] -->|Tailscale| Serve
     subgraph WSL["dash-hub · WSL on the PC (always on)"]
         Serve["tailscale serve<br/>https → 127.0.0.1:47900"] --> Hub["dash-hub.service<br/>(this folder)"]
         Metro["dash-metro.service<br/>Metro :8081, serves the phone app"]
@@ -29,12 +29,12 @@ Lecture recording needs the Mac's microphone, so the hub only relays the phone's
 
 ## Memory
 
-Memory lives in `~/.local/share/dash/memory`. Chats, the brief and the lens all get it in their prompts, and chats can
+Memory lives in `~/.local/share/dash/memory`. Chats and the brief get it in their prompts, and chats can
 Grep the whole folder. Days start at 4 AM, so a late night counts as the evening before.
 
 | File | What it holds |
 |---|---|
-| `log/<day>.jsonl` | Everything, append-only: chat summaries (Haiku, when a chat goes quiet), lens questions and lectures from the Mac, and pushes |
+| `log/<day>.jsonl` | Everything, append-only: chat summaries (Haiku, when a chat goes quiet), lectures from the Mac, and pushes |
 | `journal/<day>.md` | One entry per day, written at 4:15 AM |
 | `core.md` | Long-lasting facts about the user, rewritten nightly by Sonnet |
 | `threads.md` | Follow-ups ("after 2026-11-02 · ask how the exam went") |

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// A conversation with one Claude Code session: the turns, live streaming, tool calls, and
-/// write approvals. The ⌥A lens (`Session`) and the console chats build on this.
+/// write approvals. The console chats, the daily brief and the portfolio advisor build on this.
 @MainActor
 class Conversation: ObservableObject {
     struct ToolCall: Identifiable, Equatable, Codable {
@@ -37,7 +37,6 @@ class Conversation: ObservableObject {
         var id = UUID()
         let role: Role
         var text: String
-        var mode: Mode?
         var isError = false
         var tools: [ToolCall] = []
         /// Claude's reasoning, when the model streams it.
@@ -57,7 +56,7 @@ class Conversation: ObservableObject {
         var fields: [(key: String, value: String)] { Tools.fields(request.input) }
     }
 
-    enum Status { case idle, capturing, thinking, streaming }
+    enum Status { case idle, thinking, streaming }
 
     @Published var turns: [Turn] = []
     @Published var status: Status = .idle
@@ -87,7 +86,7 @@ class Conversation: ObservableObject {
 
     /// How this conversation starts Claude Code. Subclasses choose the prompt and tools.
     func makeClaude(effort: String) throws -> ClaudeSession {
-        try ClaudeSession(model: model, effort: effort, system: Prompts.system)
+        fatalError("\(Self.self) must override makeClaude(effort:)")
     }
 
     /// Requests that are safe to grant without asking (e.g. editing Dash's memory file).
@@ -318,14 +317,13 @@ extension Conversation.ToolCall {
 
 extension Conversation.Turn {
     enum CodingKeys: String, CodingKey {
-        case id, role, text, mode, isError, tools, thinking, attachments, stopped
+        case id, role, text, isError, tools, thinking, attachments, stopped
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(id: try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
                   role: try c.decode(Role.self, forKey: .role), text: try c.decode(String.self, forKey: .text),
-                  mode: try c.decodeIfPresent(Mode.self, forKey: .mode),
                   isError: try c.decodeIfPresent(Bool.self, forKey: .isError) ?? false,
                   tools: try c.decodeIfPresent([Conversation.ToolCall].self, forKey: .tools) ?? [],
                   thinking: try c.decodeIfPresent(String.self, forKey: .thinking) ?? "",

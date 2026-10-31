@@ -74,11 +74,11 @@ Done. Left to do by hand (secrets are deliberately not in the repo):
      email/calendar call opens a browser to sign in.
   2. Optional: copy ~/ABOUT_ME.md from your old Mac (Dash and the study skills read it).
   3. Robinhood: open Dash > Portfolio > Connect (tokens live in the Keychain, per Mac).
-  4. Permissions: Dash asks for Screen Recording and Microphone on first use.
+  4. Permissions: Dash asks for Microphone access at the first lecture recording.
   5. Brightspace to-do (~/BrightspaceToDo/todo.md) is rebuilt by the brightspace-todo skill.
-  6. Optional, keeps Screen Recording permission across rebuilds: create a self-signed code
+  6. Optional, keeps Microphone permission across rebuilds: create a self-signed code
      signing certificate named "Dash Local Signing" in Keychain Access, then ./build.sh --install.
      Without it the build is ad-hoc signed and macOS re-asks after each rebuild.
 
-Open Dash with: open ~/Applications/Dash.app   (⌥L console, ⌥A lens)
+Open Dash with: open ~/Applications/Dash.app   (⌥L console)
 EOF

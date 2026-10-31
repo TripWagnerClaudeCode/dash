@@ -26,7 +26,7 @@ struct TurnResult {
     var interrupted = false
 }
 
-/// What a Claude Code session may use. `.lens` is the original screen helper: no tools at all.
+/// What a Claude Code session may use. `.plain` has no tools at all (the brief, lecture notes, one-off asks).
 /// Console sessions add jarvis (email, calendar, weather, search…) and file tools. Anything
 /// not in `allowedTools` comes back to Dash as a permission request instead of just running.
 struct ClaudeProfile {
@@ -38,12 +38,12 @@ struct ClaudeProfile {
     /// Extra MCP servers by name (e.g. the advisor's read-only Robinhood relay).
     var mcpServers: [String: Any] = [:]
     /// Keep Claude Code's own system prompt and append Dash's text to it (console chats), rather
-    /// than replacing it (the lens and the other single-purpose helpers).
+    /// than replacing it (the single-purpose helpers).
     var keepDefaultPrompt = false
     /// "acceptEdits", "plan"… nil leaves Claude Code's default.
     var permissionMode: String?
 
-    static let lens = ClaudeProfile()
+    static let plain = ClaudeProfile()
 
     /// jarvis tools that only read, so they run without asking.
     static let jarvisReads = ["calendar_get", "email_read", "weather_get", "web_search", "file_read",
@@ -166,10 +166,10 @@ final class ClaudeSession {
         return FileManager.default.isExecutableFile(atPath: path) ? URL(fileURLWithPath: path) : nil
     }()
 
-    /// Starts the claude process right away, so its startup overlaps with taking the screenshot.
+    /// Starts the claude process right away, so its startup overlaps with building the first message.
     /// `sessionID` makes the conversation resumable: a new one is created under that ID, or with
     /// `resume` the existing one is continued (the history lives in Claude Code, not in Dash).
-    init(model: ClaudeModel, effort: String, system: String, profile: ClaudeProfile = .lens,
+    init(model: ClaudeModel, effort: String, system: String, profile: ClaudeProfile = .plain,
          sessionID: String? = nil, resume: Bool = false) throws {
         guard let executable = Self.executable else { throw ClaudeCLIError.notInstalled }
         var arguments = ["-p", "--input-format", "stream-json", "--output-format", "stream-json",

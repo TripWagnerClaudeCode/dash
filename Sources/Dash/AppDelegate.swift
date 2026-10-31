@@ -5,24 +5,17 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let session = Session()
     private let jarvis = JarvisClient()
-    private lazy var console = Console(lens: session, jarvis: jarvis)
+    private lazy var console = Console(jarvis: jarvis)
     private lazy var consoleWindow = ConsoleWindowController(console: console)
-    private var panel: OverlayPanel!
     /// The Dash hub on the always-on PC, which now serves the phone (and its app) and holds the shared
     /// to-do list and Today. This Mac's own old hub and Metro server are no longer started.
     private let hub = HubClient()
-    private lazy var settings = SettingsWindowController(session: session, hub: hub)
+    private lazy var settings = SettingsWindowController(hub: hub)
     private var lectureRemote: LectureRemote?
     private var statusItem: NSStatusItem!
-    private var captureHotKey: HotKey?
-    private var toggleHotKey: HotKey?
     private var consoleHotKey: HotKey?
-    private var appendHotKey: HotKey?
     private var recordingWatch: AnyCancellable?
-    /// The last app other than Dash that was frontmost; the capture target.
-    private var lastExternalApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Per-session MCP configs from a previous run (their relay secrets are already dead).
@@ -33,63 +26,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Log.trimIfLarge()
         Log.write("launch")
-        panel = OverlayPanel(rootView: OverlayView().environmentObject(session))
-        panel.alphaValue = UserDefaults.standard.object(forKey: Prefs.opacity) as? Double ?? Prefs.defaultOpacity
-
-        session.hide = { [weak self] in self?.panel.orderOut(nil) }
-        session.recapture = { [weak self] in self?.captureAndShow() }
-        session.recaptureAppending = { [weak self] in self?.captureAndShow(append: true) }
-        session.setOpacity = { [weak self] in self?.panel.alphaValue = $0 }
-        session.openSettings = { [weak self] in self?.showSettings() }
-        session.openConsole = { [weak self] in self?.consoleWindow.show() }
-        session.snapOverDock = { [weak self] in
-            self?.panel.snapOverDock()
-            self?.showPanel()
-        }
-        session.resetPosition = { [weak self] in
-            self?.panel.resetPosition()
-            self?.showPanel()
-        }
-
         setUpStatusItem()
         setUpMainMenu()
-        // ⌥A captures the window and answers. ⌥Space shows or hides the overlay.
-        captureHotKey = HotKey(id: 1, keyCode: kVK_ANSI_A, modifiers: optionKey) { [weak self] in
-            self?.captureAndShow()
-        }
-        toggleHotKey = HotKey(id: 2, keyCode: kVK_Space, modifiers: optionKey) { [weak self] in
-            self?.toggleVisibility()
-        }
         // ⌥L opens or hides the console.
         consoleHotKey = HotKey(id: 3, keyCode: kVK_ANSI_L, modifiers: optionKey) { [weak self] in
             self?.consoleWindow.toggle()
         }
-        // ⌥⇧A adds another screenshot to the current conversation (quiz passages and long quizzes).
-        appendHotKey = HotKey(id: 4, keyCode: kVK_ANSI_A, modifiers: optionKey | shiftKey) { [weak self] in
-            self?.captureAndShow(append: true)
-        }
-        let taken = [("⌥A", captureHotKey), ("⌥Space", toggleHotKey), ("⌥L", consoleHotKey), ("⌥⇧A", appendHotKey)]
-            .filter { $0.1?.registrationError != nil }.map(\.0)
-        if !taken.isEmpty {
-            session.notice = "\(taken.joined(separator: ", ")) is already used by another app, so Dash can't listen for it. Use the menu bar icon instead."
-        }
         // The menu bar icon turns into a red record dot while a lecture is recording.
         recordingWatch = console.lecture.$state.sink { [weak self] state in
             let recording = state != .idle
-            self?.statusItem.button?.image = NSImage(systemSymbolName: recording ? "record.circle.fill" : "text.viewfinder",
+            self?.statusItem.button?.image = NSImage(systemSymbolName: recording ? "record.circle.fill" : Self.menuBarSymbol,
                                                      accessibilityDescription: "Dash")
             self?.statusItem.button?.contentTintColor = recording ? .systemRed : nil
         }
-
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
-        ) { [weak self] note in
-            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            MainActor.assumeIsolated {
-                if let app, app.processIdentifier != getpid() { self?.lastExternalApp = app }
-            }
-        }
-        lastExternalApp = NSWorkspace.shared.frontmostApplication
 
         console.today.useHub(hub)
         console.chat.useHub(hub)
@@ -104,8 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hub.connect()
 
-        if ClaudeSession.executable == nil { session.notice = ClaudeCLIError.notInstalled.errorDescription }
-        showPanel()
+        // After useHub, which can replace the chat (and its notice) with the hub's open one. The console
+        // opens on Chat so the notice is seen. Nothing is shown here otherwise: opening Dash from the Dock
+        // or Finder activates it and applicationDidBecomeActive brings up the console, while a login-item
+        // launch stays in the background.
+        if consoleHotKey?.registrationError != nil {
+            console.chat.notice = "⌥L is already used by another app, so Dash can't listen for it. Use the menu bar icon or the Dock instead."
+        }
+        if ClaudeSession.executable == nil { console.chat.notice = ClaudeCLIError.notInstalled.errorDescription }
+        if console.chat.notice != nil { consoleWindow.show(page: .chat) }
     }
 
     /// Clicking Dash's Dock icon (or opening it again from Spotlight, Launchpad or Finder) while
@@ -121,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // that shouldn't also bring up the console.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self, NSApp.isActive, NSApp.modalWindow == nil, NSApp.keyWindow == nil,
-                  !consoleWindow.hasVisibleWindow, !panel.isVisible, !settings.isVisible else { return }
+                  !consoleWindow.hasVisibleWindow, !settings.isVisible else { return }
             consoleWindow.show()
         }
     }
@@ -148,41 +104,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         jarvis.shutdown(wait: true)
     }
 
-    private func toggleVisibility() {
-        if panel.isVisible { panel.orderOut(nil) } else { showPanel() }
-    }
-
-    private func captureAndShow(append: Bool = false) {
-        let front = NSWorkspace.shared.frontmostApplication
-        let target = (front?.processIdentifier == getpid()) ? lastExternalApp : front
-        showPanel()
-        Task { await session.captureWindow(of: target, append: append) }
-    }
-
-    /// Shows the panel without taking keyboard focus, so typing stays in your app.
-    /// Clicking the chat field gives it focus.
-    private func showPanel() {
-        panel.orderFrontRegardless()
-    }
-
     private func showSettings() {
         settings.show()
     }
 
     // MARK: Menu bar
 
+    private static let menuBarSymbol = "rectangle.grid.1x2"
+
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "Dash")
+        statusItem.button?.image = NSImage(systemSymbolName: Self.menuBarSymbol, accessibilityDescription: "Dash")
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "Capture and Answer  ⌥A", action: #selector(menuCapture), keyEquivalent: "")
-        menu.addItem(withTitle: "Show / Hide  ⌥Space", action: #selector(menuToggle), keyEquivalent: "")
         menu.addItem(withTitle: "Open Console  ⌥L", action: #selector(menuConsole), keyEquivalent: "")
         menu.addItem(withTitle: "Lecture Notes…", action: #selector(menuLecture), keyEquivalent: "")
         menu.addItem(withTitle: "Settings…", action: #selector(menuSettings), keyEquivalent: "")
-        menu.addItem(withTitle: "Snap Panel Over Dock", action: #selector(menuSnapOverDock), keyEquivalent: "")
-        menu.addItem(withTitle: "Reset Panel Position", action: #selector(menuResetPosition), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Dash", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) {
@@ -223,12 +160,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = mainMenu
     }
 
-    @objc private func menuCapture() { captureAndShow() }
-    @objc private func menuToggle() { toggleVisibility() }
     @objc private func menuConsole() { consoleWindow.show() }
     @objc private func menuLecture() { consoleWindow.show(page: .lecture) }
 
     @objc private func menuSettings() { showSettings() }
-    @objc private func menuSnapOverDock() { session.snapOverDock() }
-    @objc private func menuResetPosition() { session.resetPosition() }
 }

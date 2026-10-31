@@ -1,10 +1,9 @@
 import Combine
 import Foundation
 
-/// Mac Dash's side of Dash's memory, which lives on the hub (hub/src/memory.ts). The lens and lecture
-/// recorder run on this Mac, so they report what happened here; entries wait on disk while the hub is
-/// out of reach and go up when it's back. The lens also gets a short "what Dash knows about the user" from
-/// the hub, kept on disk so it works offline. The Memory page reads and prunes the whole thing.
+/// Mac Dash's side of Dash's memory, which lives on the hub (hub/src/memory.ts). The lecture recorder
+/// runs on this Mac, so it reports what happened here; entries wait on disk while the hub is out of reach
+/// and go up when it's back. The Memory page reads and prunes the whole thing.
 @MainActor
 final class MemoryModel: ObservableObject {
     static let shared = MemoryModel()
@@ -28,9 +27,6 @@ final class MemoryModel: ObservableObject {
     @Published private(set) var loading = false
     @Published var error: String?
 
-    /// The lens's persona and the user's core memory, ready to add to its system prompt. Nil until the hub sends it.
-    private(set) var lensContext: String?
-    private var contextFetched: Date?
     private weak var hub: HubClient?
     private var pending: [[String: Any]] = []
     private var flushing = false
@@ -38,7 +34,6 @@ final class MemoryModel: ObservableObject {
     private var watch: AnyCancellable?
 
     private static let pendingURL = HubClient.cacheDir.appendingPathComponent("pending-memory.json")
-    private static let contextURL = HubClient.cacheDir.appendingPathComponent("lens-context.txt")
     /// Outside hub-cache, so unpairing doesn't make the local lines go up a second time.
     private static let uploadedURL = Personal.supportDir.appendingPathComponent("memory-uploaded.json")
     private static let maxPending = 500
@@ -61,7 +56,6 @@ final class MemoryModel: ObservableObject {
             }
             if saved.contains(where: { !($0["id"] is String) }) { savePending() }
         }
-        lensContext = try? String(contentsOf: Self.contextURL, encoding: .utf8)
         watch = hub.$state.sink { [weak self] state in
             switch state {
             case .online:
@@ -69,22 +63,19 @@ final class MemoryModel: ObservableObject {
                 DispatchQueue.main.async {
                     MainActor.assumeIsolated {
                         self?.flush()
-                        self?.refreshLensContext()
                         self?.uploadLocalMemory()
                     }
                 }
             case .unpaired:
-                // Unpairing deleted hub-cache; what the hub knew about the user leaves the lens prompt too.
+                // Unpairing deleted hub-cache, and the queue with it.
                 self?.pending = []
-                self?.lensContext = nil
-                self?.contextFetched = nil
             default:
                 break
             }
         }
     }
 
-    /// Records something that happened on this Mac ("lens", "lecture"…) in Dash's memory.
+    /// Records something that happened on this Mac (a lecture…) in Dash's memory.
     func log(source: String, kind: String, text: String, title: String? = nil) {
         guard hub?.isPaired == true, !text.isEmpty else { return }
         enqueue([Self.entry(source: source, kind: kind, text: text, title: title)])
@@ -103,26 +94,6 @@ final class MemoryModel: ObservableObject {
         if pending.count > Self.maxPending { pending.removeFirst(pending.count - Self.maxPending) }
         savePending()
         flush()
-    }
-
-    /// The lens asks for this before each new capture; it's fetched again every half hour.
-    func refreshLensContextIfStale() {
-        guard contextFetched.map({ Date().timeIntervalSince($0) > 30 * 60 }) ?? true else { return }
-        refreshLensContext()
-    }
-
-    private func refreshLensContext() {
-        guard let hub, hub.isOnline else { return }
-        Task {
-            guard let result = try? await hub.request("memory.context"),
-                  let persona = result["persona"] as? String, let memory = result["memory"] as? String,
-                  hub.isPaired else { return }
-            let context = "\(persona)\n\n<dash_memory>\n\(memory)\n</dash_memory>"
-            lensContext = context
-            contextFetched = Date()
-            try? FileManager.default.createDirectory(at: HubClient.cacheDir, withIntermediateDirectories: true)
-            try? context.write(to: Self.contextURL, atomically: true, encoding: .utf8)
-        }
     }
 
     /// Sends the oldest entries, then takes exactly those off the queue (by id), so anything logged while
@@ -245,7 +216,7 @@ final class MemoryModel: ObservableObject {
             selfNotes: "# Dash, in his own words\n\n## Who I am\n- I'm Dash (he/him), Alex's chief of staff and confidant.\n## Running jokes and shared references\n- The history essay that ate October.",
             threads: "# Follow-ups\n\n- [ ] after 2026-10-30 · Ask how the HIST2100 exam went\n- [ ] after 2026-11-02 · Did the talk with Sam about quiet hours happen?",
             remember: "# Things to remember\n\n- 2026-10-14: earnings recaps lead with EPS",
-            journal: [JournalEntry(day: "2026-10-27", text: "A long Tuesday. Alex spent the afternoon outlining the HIST2100 essay and sounded tired but steadier by the evening. About 20 lens questions on Spanish homework.")],
+            journal: [JournalEntry(day: "2026-10-27", text: "A long Tuesday. Alex spent the afternoon outlining the HIST2100 essay and sounded tired but steadier by the evening. Two lectures recorded, both filed to their Docs.")],
             recent: "- Tue 3:10 PM · chat \"History essay\": Outlined the essay; follow up Friday.")
     }
 }

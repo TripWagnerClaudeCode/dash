@@ -19,7 +19,7 @@ enum DS {
     /// The width every scrolling page's content is held to, and the margin around it.
     static let pageWidth: CGFloat = 980
     static let pagePadding: CGFloat = 22
-    /// The conversation column (Chat, Lens) is narrower: long lines are hard to read.
+    /// The conversation column (Chat, the advisor) is narrower: long lines are hard to read.
     static let chatWidth: CGFloat = 780
 }
 

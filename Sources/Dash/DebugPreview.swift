@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// `Dash --preview <out.png>` renders the overlay with sample content to a PNG and exits.
-/// Lets the layout be checked without screen-recording access.
+/// `Dash --preview <out.png> <page>` renders a console page (or Settings) with sample content to a PNG
+/// and exits.
 @MainActor
 enum DebugPreview {
     /// Set while rendering a preview, so pages don't load live data over the sample.
@@ -16,7 +16,7 @@ enum DebugPreview {
             MemoryModel.shared.showSample()
             return console(output: output, page: .memory)
         }
-        if ["today", "chat", "lens", "lecture", "portfolio", "study"].contains(variant) {
+        if ["today", "chat", "lecture", "portfolio", "study"].contains(variant) {
             return console(output: output, page: Console.Page(rawValue: variant)!)
         }
         if variant == "portfolio-sample-bottom" {
@@ -36,39 +36,21 @@ enum DebugPreview {
             PortfolioPage.previewScrollToBottom = true
             return console(output: output, page: .portfolio)
         }
-        let session = Session()
-        let image = NSImage(size: NSSize(width: 10, height: 10))
-        session.capture = Capture(jpeg: Data(), thumbnail: image, appName: "Google Chrome", windowTitle: "VHL Central")
-        session.turns = [
-            .init(role: .user, text: "", mode: .answer),
-            .init(role: .assistant, text: """
-            1. **fui** — *ayer* signals the preterite.
-            2. **era** — description in the past uses the imperfect.
-            3. **conocí** — first meeting, so preterite.
-            """),
-        ]
-        if variant == "long" {
-            session.turns[1].text = (1...14).map { "\($0). **respuesta** — a longer explanation line that wraps." }.joined(separator: "\n")
-        } else if variant == "panel-chat" {
-            session.turns += [.init(role: .user, text: "why is it fui and not iba?", mode: .ask),
-                              .init(role: .assistant, text: "*Ayer* marks one completed trip, so **fui** (preterite).")]
+        guard variant == "settings" else {
+            print("unknown preview: \(variant.isEmpty ? "(none)" : variant). Use today, chat, lecture, portfolio, study, memory, settings, or a portfolio-* variant.")
+            exit(2)
         }
-        let panel: NSPanel
-        if variant == "settings" {
-            // A sample hub with this Mac and a phone; never touches the Keychain or the network.
-            let hub = HubClient(store: .none)
-            hub.showSample(.init(url: "wss://dash-hub.example.ts.net", token: "", hub: "dash-hub", device: "MacBook Pro",
-                                 app: "exp://100.64.0.1:8081"),
-                           devices: [.init(id: "1", name: "MacBook Pro", role: "mac", online: true, lastSeen: Date()),
-                                     .init(id: "2", name: "iPhone", role: "phone", online: false,
-                                           lastSeen: Date().addingTimeInterval(-3600))],
-                           state: .online)
-            panel = OverlayPanel(rootView: SettingsView(hub: hub).environmentObject(session).background(.black))
-            panel.setFrame(NSRect(x: -4000, y: 200, width: 380, height: 600), display: true)
-        } else {
-            panel = OverlayPanel(rootView: OverlayView().environmentObject(session))
-            panel.setFrame(NSRect(x: -4000, y: 200, width: 440, height: 300), display: true)
-        }
+        // A sample hub with this Mac and a phone; never touches the Keychain or the network.
+        let hub = HubClient(store: .none)
+        hub.showSample(.init(url: "wss://dash-hub.example.ts.net", token: "", hub: "dash-hub", device: "MacBook Pro",
+                             app: "exp://100.64.0.1:8081"),
+                       devices: [.init(id: "1", name: "MacBook Pro", role: "mac", online: true, lastSeen: Date()),
+                                 .init(id: "2", name: "iPhone", role: "phone", online: false,
+                                       lastSeen: Date().addingTimeInterval(-3600))],
+                       state: .online)
+        let panel = NSPanel(contentRect: NSRect(x: -4000, y: 200, width: 380, height: 600),
+                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.contentView = NSHostingView(rootView: SettingsView(hub: hub).background(.black))
         panel.orderFrontRegardless()
 
         RunLoop.main.run(until: Date().addingTimeInterval(1.5))
@@ -84,8 +66,7 @@ enum DebugPreview {
     /// Renders a console page with sample data (and the to-do file under DASH_SUPPORT).
     static func console(output: String, page: Console.Page, advisor: Bool = false, sample: Bool = false,
                         size: NSSize = NSSize(width: 1000, height: 700)) {
-        let session = Session()
-        let console = Console(lens: session, jarvis: JarvisClient())
+        let console = Console(jarvis: JarvisClient())
         console.page = page
         let today = console.today
         let now = Date()
@@ -168,10 +149,6 @@ enum DebugPreview {
             console.lecture.log = [.init(text: "Recording \(course.code). Notes go to its Doc every 5 minutes."),
                                    .init(text: "Filed 212 words of notes to the Doc.")]
         }
-        session.capture = Capture(jpeg: Data(), thumbnail: NSImage(size: NSSize(width: 160, height: 100)),
-                                  appName: "Google Chrome", windowTitle: "VHL Central — Lección 3")
-        session.turns = [.init(role: .user, text: "", mode: .answer),
-                         .init(role: .assistant, text: "1. **vivo**: *yo* form of -ir verb **vivir**.")]
 
         // The console's sidebar list and backgrounds don't survive an offscreen cacheDisplay, so
         // show the window briefly and screenshot just this window by its ID.
@@ -185,7 +162,7 @@ enum DebugPreview {
                               styleMask: [.titled, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.titlebarAppearsTransparent = true
         window.contentView = NSHostingView(rootView: ConsoleView()
-            .environmentObject(console).environmentObject(session)
+            .environmentObject(console)
             .environmentObject(console.today).environmentObject(console.lecture)
             .environmentObject(console.portfolio))
         window.orderFrontRegardless()
@@ -239,7 +216,7 @@ enum DebugPreview {
                 let session = console
                     ? try ClaudeSession(model: .sonnet, effort: "low", system: Personal.consoleSystem(),
                                         profile: .console(addDirs: [Personal.supportDir.path]))
-                    : try ClaudeSession(model: .haiku, effort: "low", system: Prompts.system)
+                    : try ClaudeSession(model: .haiku, effort: "low", system: "You are a helpful assistant. Be brief.")
                 var content: [[String: Any]] = []
                 if !console, arguments.count > 1, let jpeg = FileManager.default.contents(atPath: arguments[1]) {
                     content.append(["type": "image", "source": ["type": "base64", "media_type": "image/jpeg",
