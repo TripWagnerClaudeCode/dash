@@ -60,6 +60,7 @@ public class ClaudeProtocolTests
         Assert.Contains("--resume", args);
         Assert.Contains("--effort", args);
         Assert.Contains("high", args);
-        Assert.Contains("--append-system-prompt", args); // console keeps default prompt
+        Assert.Contains("--system-prompt", args); // console replaces the default prompt
+        Assert.DoesNotContain("--append-system-prompt", args);
     }
 }

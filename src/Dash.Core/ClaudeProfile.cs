@@ -10,7 +10,7 @@ public class ClaudeProfile
     public string? PermissionMode { get; set; }
 
     public static readonly string[] ChatTools =
-        { "Read", "Glob", "Grep", "Edit", "Write", "Bash", "WebSearch", "WebFetch", "NotebookEdit", "Task" };
+        { "Read", "Glob", "Grep", "Edit", "Write", "Bash", "WebSearch", "WebFetch", "NotebookEdit" };
 
     public static ClaudeProfile Console(IEnumerable<string>? addDirs = null)
     {
@@ -18,7 +18,7 @@ public class ClaudeProfile
         return new ClaudeProfile
         {
             Tools = ChatTools.ToList(),
-            AllowedTools = new() { "Read", "Glob", "Grep", "WebSearch", "Task" },
+            AllowedTools = new() { "Read", "Glob", "Grep", "WebSearch" },
             DisallowedTools = new(),
             AddDirs = new List<string>
             {
@@ -26,7 +26,7 @@ public class ClaudeProfile
                 Path.Combine(home, "Desktop"),
                 Path.Combine(home, "Downloads"),
             }.Concat(addDirs ?? Enumerable.Empty<string>()).ToList(),
-            KeepDefaultPrompt = true,
+            KeepDefaultPrompt = false, // replace Claude Code's large default prompt with Dash's own
         };
     }
 }

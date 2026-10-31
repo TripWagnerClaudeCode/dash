@@ -7,6 +7,7 @@ public record ClaudeModel(string Id, string Name, string Blurb, bool SupportsEff
     public static readonly ClaudeModel Haiku  = new("haiku",  "Haiku",  "fastest, lightest on limits", false);
 
     public static readonly ClaudeModel[] All = { Opus, Sonnet, Haiku };
-    public static string DefaultId => Opus.Id;
-    public static ClaudeModel Find(string id) => All.FirstOrDefault(m => m.Id == id) ?? Opus;
+    public static string DefaultId => Sonnet.Id;
+    public const string DefaultEffort = "medium";
+    public static ClaudeModel Find(string id) => All.FirstOrDefault(m => m.Id == id) ?? Sonnet;
 }

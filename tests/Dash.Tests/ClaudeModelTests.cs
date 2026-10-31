@@ -4,9 +4,11 @@ using Xunit;
 public class ClaudeModelTests
 {
     [Fact]
-    public void Find_unknown_id_returns_opus_default()
+    public void Find_unknown_id_returns_sonnet_default()
     {
-        Assert.Equal(ClaudeModel.Opus.Id, ClaudeModel.Find("nope").Id);
+        Assert.Equal(ClaudeModel.Sonnet.Id, ClaudeModel.Find("nope").Id);
+        Assert.Equal(ClaudeModel.Sonnet.Id, ClaudeModel.DefaultId);
+        Assert.Equal("medium", ClaudeModel.DefaultEffort);
     }
 
     [Fact]
@@ -23,6 +25,8 @@ public class ClaudeModelTests
         Assert.Contains("WebSearch", p.AllowedTools);
         Assert.DoesNotContain("Bash", p.AllowedTools);
         Assert.Contains("Bash", p.Tools);
-        Assert.True(p.KeepDefaultPrompt);
+        Assert.False(p.KeepDefaultPrompt);
+        Assert.DoesNotContain("Task", p.Tools);
+        Assert.DoesNotContain("Task", p.AllowedTools);
     }
 }

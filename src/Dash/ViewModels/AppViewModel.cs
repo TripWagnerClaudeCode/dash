@@ -27,7 +27,7 @@ public partial class AppViewModel : ObservableObject
         var doc = new ChatDocument
         {
             Meta = new ChatMeta(Guid.NewGuid().ToString("N"), "New chat", null, now, now,
-                ClaudeModel.DefaultId, "high", null),
+                ClaudeModel.DefaultId, ClaudeModel.DefaultEffort, null),
         };
         _store.Save(doc);
         Chats.Insert(0, doc.Meta);
