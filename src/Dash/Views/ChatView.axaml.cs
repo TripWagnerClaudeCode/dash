@@ -23,6 +23,15 @@ public partial class ChatView : UserControl
         }
     }
 
+    void OnAllow(object? sender, RoutedEventArgs e) => Answer(allow: true, always: false);
+    void OnAlwaysAllow(object? sender, RoutedEventArgs e) => Answer(allow: true, always: true);
+    void OnDeny(object? sender, RoutedEventArgs e) => Answer(allow: false, always: false);
+
+    void Answer(bool allow, bool always)
+    {
+        if (DataContext is ChatConversation { PendingApproval: { } r } c) c.Resolve(r, allow, always);
+    }
+
     void OnStop(object? sender, RoutedEventArgs e)
     {
         if (DataContext is ChatConversation c) c.Stop();

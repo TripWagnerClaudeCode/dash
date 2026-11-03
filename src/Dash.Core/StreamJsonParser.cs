@@ -73,13 +73,23 @@ public class StreamJsonParser
 
             case "control_request":
                 var reqId = Str(e, "request_id");
-                if (reqId is null || !e.TryGetProperty("request", out var req)) break;
-                if (Str(req, "subtype") != "can_use_tool" || Str(req, "tool_name") is not string tool)
-                    break; // unsupported control requests are answered by ClaudeSession, not here
+                if (reqId is null) break;
+                if (!e.TryGetProperty("request", out var req) ||
+                    Str(req, "subtype") != "can_use_tool" || Str(req, "tool_name") is not string tool)
+                {
+                    // Claude Code blocks until every control request is answered.
+                    OnEvent?.Invoke(new ClaudeEvent.UnsupportedControlEvent(reqId));
+                    break;
+                }
                 var suggestions = req.TryGetProperty("permission_suggestions", out var ps)
                     ? KeepNarrowSuggestions(ps) : new();
                 OnEvent?.Invoke(new ClaudeEvent.PermissionEvent(new PermissionRequest(
                     reqId, tool, Str(req, "display_name") ?? tool, ToDict(req, "input"), suggestions)));
+                break;
+
+            case "control_cancel_request":
+                if (Str(e, "request_id") is string cancelId)
+                    OnEvent?.Invoke(new ClaudeEvent.PermissionCancelledEvent(cancelId));
                 break;
 
             case "result":

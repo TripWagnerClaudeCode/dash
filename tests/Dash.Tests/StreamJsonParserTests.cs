@@ -96,4 +96,18 @@ public class StreamJsonParserTests
         var e = Run(line);
         Assert.Empty(e.OfType<ClaudeEvent.ToolStartedEvent>());
     }
+
+    [Fact]
+    public void Unsupported_control_request_emits_unsupported_event()
+    {
+        var e = Run("{\"type\":\"control_request\",\"request_id\":\"h1\",\"request\":{\"subtype\":\"hook_callback\"}}\n");
+        Assert.Equal("h1", Assert.IsType<ClaudeEvent.UnsupportedControlEvent>(Assert.Single(e)).RequestId);
+    }
+
+    [Fact]
+    public void Control_cancel_request_emits_cancel_event()
+    {
+        var e = Run("{\"type\":\"control_cancel_request\",\"request_id\":\"c1\"}\n");
+        Assert.Equal("c1", Assert.IsType<ClaudeEvent.PermissionCancelledEvent>(Assert.Single(e)).RequestId);
+    }
 }

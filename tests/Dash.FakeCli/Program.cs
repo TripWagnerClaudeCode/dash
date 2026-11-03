@@ -24,6 +24,41 @@ if (scenario == "permission")
     return;
 }
 
+if (scenario == "unsupported")
+{
+    // A control request Dash doesn't handle; it must answer with an error or this blocks forever.
+    Emit(new { type = "control_request", request_id = "h1", request = new { subtype = "hook_callback" } });
+    string? r;
+    while ((r = Console.In.ReadLine()) != null && !(r.Contains("control_response") && r.Contains("h1"))) { }
+    Emit(new { type = "result", result = r != null && r.Contains("\"error\"") ? "answered" : "wrong", is_error = false, stop_reason = "end_turn" });
+    return;
+}
+
+if (scenario == "two-permissions")
+{
+    // Parallel tool calls: two approvals outstanding at once; both must be answered.
+    foreach (var id in new[] { "p1", "p2" })
+        Emit(new { type = "control_request", request_id = id, request = new {
+            subtype = "can_use_tool", tool_name = "Bash", display_name = "Bash",
+            input = new { command = "echo " + id }, permission_suggestions = Array.Empty<object>() } });
+    var answered = new HashSet<string>();
+    string? r;
+    while (answered.Count < 2 && (r = Console.In.ReadLine()) != null)
+        foreach (var id in new[] { "p1", "p2" }) if (r.Contains("control_response") && r.Contains(id)) answered.Add(id);
+    Emit(new { type = "result", result = string.Join(",", answered.Order()), is_error = false, stop_reason = "end_turn" });
+    return;
+}
+
+if (scenario == "cancel-permission")
+{
+    Emit(new { type = "control_request", request_id = "c1", request = new {
+        subtype = "can_use_tool", tool_name = "Write", display_name = "Write",
+        input = new { file_path = "x" }, permission_suggestions = Array.Empty<object>() } });
+    Emit(new { type = "control_cancel_request", request_id = "c1" });
+    Emit(new { type = "result", result = "cancelled", is_error = false, stop_reason = "end_turn" });
+    return;
+}
+
 if (scenario == "interrupt")
 {
     Emit(new { type = "stream_event", @event = new { type = "content_block_delta",

@@ -107,6 +107,12 @@ public class ClaudeSession : IDisposable
 
     void HandleEvent(ClaudeEvent e)
     {
+        if (e is ClaudeEvent.UnsupportedControlEvent u)
+        {
+            Log.Write("declined unsupported control request " + u.RequestId);
+            Write(ClaudeProtocol.UnsupportedControlResponseJson(u.RequestId));
+            return;
+        }
         _onEvent?.Invoke(e);
         if (_parser.Result is { } r) Finish(r);
     }

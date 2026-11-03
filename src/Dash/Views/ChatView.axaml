@@ -13,6 +13,31 @@
                 IsVisible="{Binding IsStreaming}" Click="OnStop"/>
       </Grid>
     </Border>
+    <!-- Approval card: shows the full tool input so nothing runs unseen -->
+    <Border DockPanel.Dock="Bottom" Margin="16,0,16,8" Padding="12" CornerRadius="8"
+            Background="#2a2620" BorderBrush="#c9a227" BorderThickness="1"
+            IsVisible="{Binding PendingApproval, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock FontWeight="SemiBold" TextWrapping="Wrap">
+            <Run Text="Dash wants to use "/><Run Text="{Binding PendingApproval.DisplayName}"/>
+          </TextBlock>
+          <TextBlock Grid.Column="1" Opacity="0.7"
+                     IsVisible="{Binding HasApprovalsWaiting}"
+                     Text="{Binding ApprovalsWaiting, StringFormat='+{0} more waiting'}"/>
+        </Grid>
+        <ScrollViewer MaxHeight="220">
+          <SelectableTextBlock Text="{Binding PendingApproval.InputJson}" TextWrapping="Wrap"
+                               FontFamily="Cascadia Mono,Consolas,monospace" FontSize="12"/>
+        </ScrollViewer>
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+          <Button Content="Deny" Click="OnDeny"/>
+          <Button Content="Always allow (this chat)" Click="OnAlwaysAllow"
+                  IsVisible="{Binding PendingApproval.CanAlwaysAllow}"/>
+          <Button Content="Allow once" Click="OnAllow" Classes="accent"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
     <!-- Transcript -->
     <ScrollViewer x:Name="Scroll">
       <ItemsControl ItemsSource="{Binding Turns}" Margin="16">

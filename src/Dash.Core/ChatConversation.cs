@@ -26,7 +26,15 @@ public partial class ChatConversation : ObservableObject
     public ObservableCollection<ChatTurn> Turns { get; } = new();
 
     [ObservableProperty] bool _isStreaming;
+    // Parallel tool calls can raise several approvals at once. The card shows the oldest;
+    // the rest wait their turn so none is overwritten and left unanswered.
+    readonly List<PermissionRequest> _approvals = new();
     [ObservableProperty] PermissionRequest? _pendingApproval;
+    /// <summary>Approvals queued behind the one on screen.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasApprovalsWaiting))]
+    int _approvalsWaiting;
+    public bool HasApprovalsWaiting => ApprovalsWaiting > 0;
 
     public string Model { get => _doc.Meta.Model; set { _doc.Meta = _doc.Meta with { Model = value }; OnPropertyChanged(); } }
     public string Effort { get => _doc.Meta.Effort; set { _doc.Meta = _doc.Meta with { Effort = value }; OnPropertyChanged(); } }
@@ -68,11 +76,11 @@ public partial class ChatConversation : ObservableObject
         catch (ClaudeException ex)
         {
             assistant.Text = (assistant.Text.Length > 0 ? assistant.Text + "\n\n" : "") + "⚠️ " + ex.Message;
-            PendingApproval = null;   // dismiss any orphaned approval card if the process died mid-approval
             _session = null; // force respawn with --resume next time
         }
         finally
         {
+            ClearApprovals();   // a finished or failed turn can't have live approvals
             IsStreaming = false;
             _doc.Meta = _doc.Meta with { UpdatedAt = DateTime.UtcNow };
             _store.Save(_doc);
@@ -108,14 +116,34 @@ public partial class ChatConversation : ObservableObject
                 var i = assistant.Tools.ToList().FindIndex(x => x.Id == tf.Id);
                 if (i >= 0) assistant.Tools[i] = assistant.Tools[i] with { Output = tf.Output, IsError = tf.IsError, Finished = true };
                 break;
-            case ClaudeEvent.PermissionEvent p: PendingApproval = p.Request; break;
+            case ClaudeEvent.PermissionEvent p: lock (_approvals) _approvals.Add(p.Request); ShowNextApproval(); break;
+            case ClaudeEvent.PermissionCancelledEvent c:
+                lock (_approvals) _approvals.RemoveAll(a => a.Id == c.RequestId);
+                ShowNextApproval();
+                break;
         }
     }
 
     public void Resolve(PermissionRequest r, bool allow, bool always)
     {
-        PendingApproval = null;
-        _session?.Respond(r, allow, always);
+        bool known;
+        lock (_approvals) known = _approvals.Remove(r);
+        ShowNextApproval();
+        if (known) _session?.Respond(r, allow, always);   // ignore double-clicks and stale cards
+    }
+
+    void ShowNextApproval()
+    {
+        PermissionRequest? next; int waiting;
+        lock (_approvals) { next = _approvals.FirstOrDefault(); waiting = Math.Max(0, _approvals.Count - 1); }
+        PendingApproval = next;
+        ApprovalsWaiting = waiting;
+    }
+
+    void ClearApprovals()
+    {
+        lock (_approvals) _approvals.Clear();
+        ShowNextApproval();
     }
 
     public void Stop() => _session?.Interrupt();

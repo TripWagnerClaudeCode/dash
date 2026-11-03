@@ -55,4 +55,13 @@ public class ClaudeSessionIntegrationTests
         var r = await task;
         Assert.True(r.Interrupted);
     }
+
+    [Fact]
+    public async Task Unsupported_control_request_gets_an_error_response()
+    {
+        using var s = NewSession("unsupported");
+        var r = await s.SendAsync(new object[] { new Dictionary<string, object?> { ["type"] = "text", ["text"] = "hi" } }, _ => { })
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal("answered", r.Text);
+    }
 }
