@@ -53,7 +53,7 @@ public class ClaudeSession : IDisposable
             FileName = exe,
             RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
             UseShellExecute = false, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
-            WorkingDirectory = DashPaths.Root,
+            WorkingDirectory = DashPaths.WorkDir,
         };
         foreach (var a in ClaudeProtocol.BuildArgs(model, effort, system, profile, sessionId, resume))
             psi.ArgumentList.Add(a);

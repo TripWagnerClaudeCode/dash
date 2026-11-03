@@ -29,4 +29,11 @@ public class ClaudeModelTests
         Assert.DoesNotContain("Task", p.Tools);
         Assert.DoesNotContain("Task", p.AllowedTools);
     }
+
+    [Theory]
+    [InlineData("high", "high")]
+    [InlineData("--dangerously-skip-permissions", "medium")]
+    [InlineData(null, "medium")]
+    public void ValidEffort_rejects_unknown_values(string? input, string expected)
+        => Assert.Equal(expected, ClaudeModel.ValidEffort(input));
 }

@@ -93,14 +93,17 @@ public partial class ChatConversation : ObservableObject
     {
         if (_session is { IsRunning: true }) return;
         var model = ClaudeModel.Find(_doc.Meta.Model);
-        var sessionId = _doc.Meta.ClaudeSessionId ?? Guid.NewGuid().ToString();
-        var resume = _doc.Meta.ClaudeSessionId is not null;
+        // Both values reach claude's argv from the chat file on disk, so accept only well-formed
+        // ones: a session id must be a GUID (a bad one starts a fresh session instead of resuming).
+        var stored = Guid.TryParse(_doc.Meta.ClaudeSessionId, out var g) ? g.ToString() : null;
+        var sessionId = stored ?? Guid.NewGuid().ToString();
+        var resume = stored is not null;
         _doc.Meta = _doc.Meta with { ClaudeSessionId = sessionId };
         var profile = ClaudeProfile.Console();
         // The mode is read from the chat file on disk; never honor a bypass mode from there.
         profile.PermissionMode = _doc.Meta.PermissionMode is "default" or "acceptEdits" or "plan"
             ? _doc.Meta.PermissionMode : null;
-        _session = new ClaudeSession(model, _doc.Meta.Effort, SystemPrompt, profile, sessionId, resume, _exe, extraEnv: _extraEnv);
+        _session = new ClaudeSession(model, ClaudeModel.ValidEffort(_doc.Meta.Effort), SystemPrompt, profile, sessionId, resume, _exe, extraEnv: _extraEnv);
     }
 
     void OnEvent(ChatTurn assistant, ClaudeEvent e)
