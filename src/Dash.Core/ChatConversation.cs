@@ -89,7 +89,9 @@ public partial class ChatConversation : ObservableObject
         var resume = _doc.Meta.ClaudeSessionId is not null;
         _doc.Meta = _doc.Meta with { ClaudeSessionId = sessionId };
         var profile = ClaudeProfile.Console();
-        profile.PermissionMode = _doc.Meta.PermissionMode;
+        // The mode is read from the chat file on disk; never honor a bypass mode from there.
+        profile.PermissionMode = _doc.Meta.PermissionMode is "default" or "acceptEdits" or "plan"
+            ? _doc.Meta.PermissionMode : null;
         _session = new ClaudeSession(model, _doc.Meta.Effort, SystemPrompt, profile, sessionId, resume, _exe, extraEnv: _extraEnv);
     }
 

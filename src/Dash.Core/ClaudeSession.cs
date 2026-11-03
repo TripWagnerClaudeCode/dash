@@ -17,11 +17,15 @@ public class ClaudeSession : IDisposable
         };
         var found = candidates.FirstOrDefault(File.Exists);
         if (found is not null) return found;
-        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        foreach (var raw in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
         {
+            // Only absolute PATH entries: an empty or relative entry would resolve against the
+            // current directory and let a planted claude.exe there be launched.
+            var dir = raw.Trim().Trim('"');
+            if (dir.Length == 0 || !Path.IsPathFullyQualified(dir)) continue;
             foreach (var name in new[] { "claude.exe", "claude.cmd", "claude" })
             {
-                var p = Path.Combine(dir.Trim(), name);
+                var p = Path.Combine(dir, name);
                 if (File.Exists(p)) return p;
             }
         }

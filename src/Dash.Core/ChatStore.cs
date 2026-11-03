@@ -10,7 +10,14 @@ public class ChatStore
     public ChatStore(string rootDir) { _dir = rootDir; Directory.CreateDirectory(_dir); }
 
     string IndexPath => Path.Combine(_dir, "index.json");
-    string DocPath(string id) => Path.Combine(_dir, id + ".json");
+    // Chat ids come from index.json on disk; only accept plain id characters so a tampered
+    // index can't point Load/Save/Delete outside the chats directory.
+    string DocPath(string id)
+    {
+        if (string.IsNullOrEmpty(id) || !id.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
+            throw new ArgumentException("invalid chat id", nameof(id));
+        return Path.Combine(_dir, id + ".json");
+    }
 
     public List<ChatMeta> List()
     {
@@ -27,7 +34,8 @@ public class ChatStore
 
     public ChatDocument? Load(string id)
     {
-        var path = DocPath(id);
+        string path;
+        try { path = DocPath(id); } catch (ArgumentException) { return null; }
         if (!File.Exists(path)) return null;
         try { return JsonSerializer.Deserialize<ChatDocument>(File.ReadAllText(path)); }
         catch { Quarantine(path); return null; }
@@ -56,7 +64,7 @@ public class ChatStore
 
     public void Delete(string id)
     {
-        try { File.Delete(DocPath(id)); } catch { }
+        try { File.Delete(DocPath(id)); } catch { }   // invalid ids throw and are ignored here
         WriteIndex(List().Where(m => m.Id != id).ToList());
     }
 
